@@ -33,14 +33,12 @@ export async function fetchProductInsights(page = 1, limit = 12) {
   return response.data;
 }
 
-export async function sendChatMessage({ messages, familySize, hasChildren, storageSpace, monthlyUsage }) {
-  const response = await api.post('/api/chat', {
-    messages,
-    familySize,
-    hasChildren,
-    storageSpace,
-    monthlyUsage,
-  });
+export async function sendChatMessage({ messages, familySize, hasChildren, storageSpace, monthlyUsage, signal }) {
+  const response = await api.post(
+    '/api/chat',
+    { messages, familySize, hasChildren, storageSpace, monthlyUsage },
+    { signal },
+  );
 
   return response.data;
 }

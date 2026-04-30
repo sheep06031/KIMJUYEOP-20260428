@@ -169,7 +169,6 @@ function App() {
           </div>
           <div className="status-metadata">
             <span>상품 수 {pagination.total}개</span>
-            <span>{health?.apiKeyConfigured ? 'OpenAI API 모드 가능' : 'Mock 응답 모드 지원'}</span>
           </div>
         </div>
       </header>

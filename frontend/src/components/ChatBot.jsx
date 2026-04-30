@@ -3,9 +3,7 @@ import { sendChatMessage } from '../api';
 
 const quickQuestions = [
   '아이도 먹을 수 있는 신선한 사과 추천해줘',
-  '4인 가족 기준 대용량 물티슈가 이득이야?',
   '자녀 피부에 자극 적은 생필품만 골라줘',
-  '유통기한 리스크가 적은 식품을 추천해줘',
   '가격보다 안전성이 중요한 상품을 골라줘',
 ];
 
@@ -48,6 +46,7 @@ function ChatBot({ products, apiReady }) {
     monthlyUsage: 'medium',
   });
   const endRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,6 +58,10 @@ function ChatBot({ products, apiReady }) {
 
   function updateCondition(key, value) {
     setConditions((current) => ({ ...current, [key]: value }));
+  }
+
+  function handleCancel() {
+    abortControllerRef.current?.abort();
   }
 
   async function handleSubmit(text) {
@@ -74,10 +77,13 @@ function ChatBot({ products, apiReady }) {
     setInput('');
     setLoading(true);
 
+    abortControllerRef.current = new AbortController();
+
     try {
       const response = await sendChatMessage({
         messages: nextMessages,
         ...conditions,
+        signal: abortControllerRef.current.signal,
       });
 
       setMessages((current) => [
@@ -92,6 +98,10 @@ function ChatBot({ products, apiReady }) {
         },
       ]);
     } catch (submitError) {
+      if (submitError.name === 'CanceledError' || submitError.name === 'AbortError') {
+        setMessages((current) => current.slice(0, -1));
+        return;
+      }
       setError('채팅 응답을 받아오지 못했습니다. 백엔드 상태를 확인해주세요.');
       setMessages((current) => [
         ...current,
@@ -109,7 +119,6 @@ function ChatBot({ products, apiReady }) {
     <section className="chat-panel">
       <div className="chat-panel-header">
         <div>
-          <p className="section-label">화면 내 AI 챗봇</p>
           <h2>구매 판단 도우미</h2>
         </div>
         <span className="chat-mode">{apiReady ? '실시간 API 연결' : '연결 대기'}</span>
@@ -173,7 +182,7 @@ function ChatBot({ products, apiReady }) {
                     ))}
                   </div>
                 )}
-                {message.recommendedProducts.map((item) => {
+                {message.recommendedProducts.slice(0, 2).map((item) => {
                   const targetId = item.productId || products.find((p) => p.name === item.productName)?.id;
                   return (
                     <button
@@ -211,11 +220,17 @@ function ChatBot({ products, apiReady }) {
         <input
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="아이도 먹을 수 있는 신선한 사과와 자극 적은 물티슈를 실속 있게 추천해줘."
+          placeholder="아이들이 안전하게 먹을 수 있는 사과 추천해줘."
         />
-        <button type="submit" disabled={loading || !products.length}>
-          전송
-        </button>
+        {loading ? (
+          <button type="button" onClick={handleCancel}>
+            취소
+          </button>
+        ) : (
+          <button type="submit" disabled={!products.length}>
+            전송
+          </button>
+        )}
       </form>
     </section>
   );
